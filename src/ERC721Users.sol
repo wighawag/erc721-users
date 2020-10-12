@@ -41,6 +41,9 @@ contract ERC721Users {
         address newUser,
         address newAgreement
     ) external {
+        if (newUser == address(0)) {
+            require(newAgreement == address(0), "NO_USER_NO_AGREEMENT");
+        }
         address owner = tokenContract.ownerOf(tokenID);
         bytes32 id = _id(tokenContract, tokenID);
         address agreement = _agreements[id];

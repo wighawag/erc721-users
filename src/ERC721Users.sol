@@ -24,7 +24,11 @@ contract ERC721Users {
     // -----------------------------------------
 
     function userOf(ERC721 tokenContract, uint256 tokenID) external view returns (address) {
-        return _users[_id(tokenContract, tokenID)];
+        address user = _users[_id(tokenContract, tokenID)];
+        if (user != address(0)) {
+            return user;
+        }
+        return tokenContract.ownerOf(tokenID);
     }
 
     function agreementFor(ERC721 tokenContract, uint256 tokenID) external view returns (address) {

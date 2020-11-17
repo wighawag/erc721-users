@@ -7,7 +7,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const {deployer} = await getNamedAccounts();
 
-  await deploy('Lease', {from: deployer, log: true});
+  await deploy('Lease', {
+    from: deployer,
+    log: true,
+    deterministicDeployment: true,
+  });
 };
 export default func;
 func.tags = ['Lease'];

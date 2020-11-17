@@ -26,7 +26,7 @@ contract Lease is ERC721Base {
     // External functions
     // -----------------------------------------
 
-    function set(
+    function setLease(
         IERC721 tokenContract,
         uint256 tokenID,
         address newUser,
@@ -42,9 +42,6 @@ contract Lease is ERC721Base {
             } else {
                 require(msg.sender == tokenOwner || _operatorsForAll[tokenOwner][msg.sender], "NOT_AUTHORIZED"); // TODO consider not giving that power to operators ?
             }
-            // without it subLease keep existing when upper lease get restablished
-            _breakSubLease(lease);
-
             if (leaseOwner != newUser) {
                 _transferFrom(leaseOwner, newUser, lease);
                 _agreements[lease] = newAgreement;
@@ -52,9 +49,6 @@ contract Lease is ERC721Base {
             emit LeaseAgreement(tokenContract, tokenID, newUser, newAgreement);
         } else {
             require(msg.sender == tokenOwner || _operatorsForAll[tokenOwner][msg.sender], "NOT_AUTHORIZED"); // TODO consider not giving that power to operators ?
-            // without it subLease keep existing when upper lease get restablished
-            _breakSubLease(lease);
-
             _transferFrom(address(0), newUser, lease);
             _agreements[lease] = newAgreement;
             emit LeaseAgreement(tokenContract, tokenID, newUser, newAgreement);
@@ -65,14 +59,7 @@ contract Lease is ERC721Base {
         uint256 lease = _leaseID(tokenContract, tokenID);
         address leaseOwner = _ownerOf(lease);
         require(leaseOwner != address(0), "NO_EXIST");
-
-        // TODO : remove : with that code, it would be easy for a user to block anyone by subLeaseing to itself with an infinite agrreement
-        // uint256 subLease = _leaseID(this, lease);
-        // address subLeaseOwner = _ownerOf(subLease);
-        // require(subLeaseOwner == address(0), "SUB_LEASED");
-
         address agreement = _agreements[lease];
-        // TODO : should a leaseOwner be always able to burn its lease ? (probably not as the agreement could be made on future payments)
         if (agreement != address(0)) {
             require(msg.sender == agreement, "NOT_AUTHORIZED_AGREEMENT");
         } else {
@@ -83,13 +70,11 @@ contract Lease is ERC721Base {
                     msg.sender == tokenOwner ||
                     _operatorsForAll[tokenOwner][msg.sender],
                 "NOT_AUTHORIZED"
-            ); // TODO consider not gobing that power to operators ?
+            );
         }
         emit LeaseAgreement(tokenContract, tokenID, address(0), address(0));
         _burn(leaseOwner, lease);
-
-        // we do not recursively void subLeases as this would open up ddos
-        // instead we burn immediate subLease on minting / changes : see use of _breakSubLease(lease);
+        _breakSubLease(lease);
     }
 
     function isLeased(IERC721 tokenContract, uint256 tokenID) external view returns (bool) {
@@ -106,7 +91,7 @@ contract Lease is ERC721Base {
         }
     }
 
-    function leaseID(IERC721 tokenContract, uint256 tokenID) external pure returns (uint256) {
+    function leaseID(IERC721 tokenContract, uint256 tokenID) external view returns (uint256) {
         return _leaseID(tokenContract, tokenID);
     }
 
@@ -114,8 +99,15 @@ contract Lease is ERC721Base {
     // Internal Functions
     // -----------------------------------------
 
-    function _leaseID(IERC721 tokenContract, uint256 tokenID) internal pure returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(tokenContract, tokenID)));
+    function _leaseID(IERC721 tokenContract, uint256 tokenID) internal view returns (uint256) {
+        uint256 baseId = uint256(keccak256(abi.encodePacked(tokenContract, tokenID))) &
+            0x1FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
+        if (tokenContract == this) {
+            uint256 depth = ((tokenID >> 253) + 1);
+            require(depth < 8, "INVALID_LEASE_MAX_DEPTH_8");
+            return baseId | (depth << 253);
+        }
+        return baseId;
     }
 
     function _finalLeaseOwner(uint256 lease, address lastLeaseOwner) internal view returns (address) {
@@ -132,11 +124,9 @@ contract Lease is ERC721Base {
         uint256 subLease = _leaseID(this, lease);
         address subLeaseOwner = _ownerOf(subLease);
         if (subLeaseOwner != address(0)) {
-            emit LeaseAgreement(this, lease, address(0), address(0)); // not needed ?
+            emit LeaseAgreement(this, lease, address(0), address(0));
             _burn(subLeaseOwner, subLease);
-
-            // we do not go recursively as this would open up ddos // Past event of subLease are basically considered void when a lease above is voided
-            // in the mean time these sub leased are void and while they can still be transferable, they serve no purpose
+            _breakSubLease(subLease);
         }
     }
 }

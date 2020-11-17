@@ -1,16 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.7.4;
 
-import "./interfaces/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 contract ERC721Users {
-    // -----------------------------------------
-    // Events
-    // -----------------------------------------
-
-    event User(ERC721 indexed tokenContract, uint256 indexed tokenID, address indexed user, address agreement);
-    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
-
     // -----------------------------------------
     // Storage
     // -----------------------------------------
@@ -20,10 +13,17 @@ contract ERC721Users {
     mapping(bytes32 => address) internal _agreements;
 
     // -----------------------------------------
+    // Events
+    // -----------------------------------------
+
+    event User(IERC721 indexed tokenContract, uint256 indexed tokenID, address indexed user, address agreement);
+    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+
+    // -----------------------------------------
     // External Functions
     // -----------------------------------------
 
-    function userOf(ERC721 tokenContract, uint256 tokenID) external view returns (address) {
+    function userOf(IERC721 tokenContract, uint256 tokenID) external view returns (address) {
         address user = _users[_id(tokenContract, tokenID)];
         if (user != address(0)) {
             return user;
@@ -31,12 +31,12 @@ contract ERC721Users {
         return tokenContract.ownerOf(tokenID);
     }
 
-    function agreementFor(ERC721 tokenContract, uint256 tokenID) external view returns (address) {
+    function agreementFor(IERC721 tokenContract, uint256 tokenID) external view returns (address) {
         return _agreements[_id(tokenContract, tokenID)];
     }
 
     function setUser(
-        ERC721 tokenContract,
+        IERC721 tokenContract,
         uint256 tokenID,
         address newUser,
         address newAgreement
@@ -66,7 +66,7 @@ contract ERC721Users {
     // Internal Functions
     // -----------------------------------------
 
-    function _id(ERC721 tokenContract, uint256 tokenID) internal pure returns (bytes32) {
+    function _id(IERC721 tokenContract, uint256 tokenID) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(tokenContract, tokenID));
     }
 }

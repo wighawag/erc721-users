@@ -1,12 +1,16 @@
-node_modules/
-.env*
-!.env*.default
-.vscode/*
-!.vscode/settings.json.default
-
-coverage*
 cache/
 artifacts/
-deployments/buidlerevm/
-deployments/localhost/
 
+coverage*
+
+.vscode/*
+!.vscode/settings.json.default
+!.vscode/launch.json.default
+!.vscode/extensions.json.default
+
+node_modules/
+.env
+
+contractsInfo.json
+deployments/hardhat
+deployments/localhost

@@ -1,5 +1,5 @@
 import {expect} from './chai-setup';
-import {ethers, deployments} from '@nomiclabs/buidler';
+import {ethers, deployments} from 'hardhat';
 
 describe('ERC721Users', function () {
   it('should work', async function () {

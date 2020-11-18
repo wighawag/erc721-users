@@ -117,6 +117,12 @@ contract ERC721Base is IERC721 {
         operatorEnabled = (data / 2**255) == 1;
     }
 
+    function _mint(address to, uint256 id) internal {
+        _numNFTPerAddress[to]++;
+        _owners[id] = uint256(to);
+        emit Transfer(address(0), to, id);
+    }
+
     function _transferFrom(
         address from,
         address to,
